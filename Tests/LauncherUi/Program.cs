@@ -43,20 +43,49 @@ internal static class Preview
         corruptProfile.Initialize().GetAwaiter().GetResult();
         if (!corruptProfile.Idle) throw new InvalidOperationException("Corrupt saved accounts left the launcher busy.");
         File.Delete(Path.Combine(Path.GetFullPath(args[1]) + "-accounts", "accounts.dpapi.json"));
-        Console.WriteLine("PASS WPF sign-in, character selection and channel binding stability."); settingsWindow.Close(); app.Shutdown();
+        Console.WriteLine("PASS WPF sign-in, character selection and channel binding stability.");
+        // Unit-level UI flow: private files wait for login, then automatic installation reaches Play.
+        var game = System.Text.Encoding.UTF8.GetBytes("UI fixture executable; never launched");
+        var manifest = new ReleaseManifest(1, "game", "live", "0.2.2", 1, DateTimeOffset.UtcNow, "game.exe",
+            [new("game.exe", game.Length, Convert.ToHexStringLower(SHA256.HashData(game)))]);
+        var signed = Manifests.Sign(manifest, "fixture", signingKey);
+        using var privateHttp = new HttpClient(new AccountUiFixture(signed, game));
+        var privateConfig = new DeploymentConfig { AllowLoopbackHttp = true, TrustedKeys = config.TrustedKeys, Channels = new() { ["live"] = endpoint with { PrivateDownloads = true } } };
+        var privateProfile = Path.GetFullPath(args[1]) + "-private-" + Guid.NewGuid().ToString("N");
+        new SettingsStore(privateProfile).Save(new LauncherSettings { GameDirectory = Path.Combine(privateProfile, "game"), RememberAccounts = false });
+        var privateModel = new LauncherViewModel(privateHttp, privateConfig, privateProfile) { LoginName = "ui_test" };
+        var privateWindow = new MainWindow { DataContext = privateModel, Left = -2000, Top = -2000 }; privateWindow.Show();
+        void Pump(Task task)
+        {
+            var wait = new DispatcherFrame(); var tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
+            tick.Tick += (_, _) => { if (task.IsCompleted) { tick.Stop(); wait.Continue = false; } };
+            tick.Start(); Dispatcher.PushFrame(wait); task.GetAwaiter().GetResult();
+        }
+        Pump(privateModel.Initialize());
+        if (File.Exists(Path.Combine(privateModel.Settings.GameDirectory, "active.json")) || privateModel.TabIndex != 1 || !privateModel.Idle)
+            throw new InvalidOperationException("Private installation did not wait for account sign-in.");
+        Pump(privateModel.Login("fixture-password-only", false));
+        if (privateModel.PrimaryLabel != "PLAY" || !File.Exists(Path.Combine(privateModel.Settings.GameDirectory, "active.json")))
+            throw new InvalidOperationException("Private login did not automatically install a verified game: " + privateModel.Status);
+        Console.WriteLine("PASS WPF private installation waits for login and automatically reaches Play after authenticated download.");
+        privateWindow.Close(); settingsWindow.Close(); app.Shutdown();
     }
 }
 
 // Unit fixture only. Real authentication and packaged game acceptance use the live backend.
-internal sealed class AccountUiFixture : HttpMessageHandler
+internal sealed class AccountUiFixture(byte[]? manifest = null, byte[]? game = null) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        if (request.RequestUri!.Host == "release-assets.githubusercontent.com") return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(game!) });
+        if (request.RequestUri!.AbsolutePath.EndsWith("/game.json")) return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(manifest!) });
         object payload = request.RequestUri!.AbsolutePath switch
         {
             "/v1/auth/login" => new { token = "ui-fixture-session", expiresIn = 7200 },
             "/v1/characters" => new[] { new CharacterChoice(Guid.NewGuid(), "Wayfarer", 1) },
             "/v1/launcher/channels" => new[] { "live", "testing" },
+            "/health" => new { status = "ready" },
+            "/live/download" => new { url = "https://release-assets.githubusercontent.com/fixture?temporary=fixture" },
             _ => throw new InvalidOperationException("Unexpected UI fixture request.")
         };
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(payload, Manifests.Json), System.Text.Encoding.UTF8, "application/json") });

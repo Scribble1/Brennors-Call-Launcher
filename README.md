@@ -15,7 +15,7 @@ On Windows, install .NET SDK 10. Unreal Engine and Visual Studio are unnecessary
 ```powershell
 ./Tools/Test-Launcher.ps1
 dotnet run --project Launcher/Desktop -c Release
-./Tools/Build-Launcher.ps1 -Version 0.2.2 -Installer -DeploymentConfig Launcher/Desktop/deployment.json
+./Tools/Build-Launcher.ps1 -Version 0.2.4 -Installer -DeploymentConfig Launcher/Desktop/deployment.json
 ```
 
 Installer packaging requires Inno Setup 6.7+ (or 7). The checked-in publisher configuration contains only public keys and endpoints. Never add private signing keys, API tokens or credentials. Saved game sessions use Windows DPAPI in `%LOCALAPPDATA%/BrennorsCall/Launcher`, outside application version folders.
