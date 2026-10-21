@@ -1,0 +1,15 @@
+{
+  "defaultChannel": "live",
+  "channels": {
+    "live": {
+      "worldAddress": "127.0.0.1:7777",
+      "apiUrl": "http://127.0.0.1:5080",
+      "privateDownloads": true,
+      "baseUrl": "http://127.0.0.1:5080/v1/distribution"
+    }
+  },
+  "trustedKeys": {
+    "pc-preview-1": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEesGBjdliPrbbWjqPGMwi/6l2OChT\nQM17GkVtvoxraO66Oby4Tv6ePH4H8D7qj+pYwnMb6Yhv025NbiS9ICieYA==\n-----END PUBLIC KEY-----"
+  },
+  "allowLoopbackHttp": true
+}

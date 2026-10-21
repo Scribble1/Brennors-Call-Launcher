@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "product": "game",
+  "channel": "development",
+  "version": "0.2.0-example",
+  "sequence": 1,
+  "published": "2026-10-21T00:00:00Z",
+  "executable": "BrennorsCall/Binaries/Win64/BrennorsCallClient.exe",
+  "files": [
+    {
+      "path": "BrennorsCall/Binaries/Win64/BrennorsCallClient.exe",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "news": "Illustrative payload only. Publish actual packaged bytes with ReleaseTool.",
+  "patchNotes": "The empty-file hash illustrates the schema; this example is not a playable release or a trusted signed envelope."
+}

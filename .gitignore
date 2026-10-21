@@ -1,0 +1,25 @@
+# Unreal generated output
+**/Binaries/
+**/Intermediate/
+**/Saved/
+**/DerivedDataCache/
+.vs/
+*.sln
+*.slnx
+**/__pycache__/
+*.suo
+*.VC.db
+*.vcxproj*
+*.opensdf
+*.sdf
+# Backend and local tools
+**/bin/
+**/obj/
+.tools/
+.local/
+Artifacts/
+.env
+*.user
+*.log
+*.tmp
+*.zip
